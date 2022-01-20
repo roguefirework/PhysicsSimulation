@@ -3,7 +3,7 @@ package com.github.zukey26.rigidbodysimulation;
 public class Main {
 
     /**
-    * @param args - optional arguments currently do nothing
+    * @param args - optional arguments
      */
     public static void main(String[] args)
     {
