@@ -10,7 +10,6 @@ repositories {
     mavenCentral()
 }
 apply plugin: "java"
-project.ext.jomlVersion = "1.10.2"
 jar {
     manifest {
         attributes 'Main-Class': 'com.github.zukey26.rigidbodysimulation.Main'
@@ -19,13 +18,14 @@ jar {
 project.ext.lwjglVersion = "3.2.3"
 
 switch (OperatingSystem.current()) {
+    case OperatingSystem.LINUX:
+        project.ext.lwjglNatives = "natives-linux"
+        break
     case OperatingSystem.WINDOWS:
-        def osArch = System.getProperty("os.arch")
-        project.ext.lwjglNatives = osArch.contains("64")
-                ? "natives-windows${osArch.startsWith("aarch64") ? "-arm64" : ""}"
-                : "natives-windows-x86"
+        project.ext.lwjglNatives = "natives-windows"
         break
 }
+
 repositories {
     mavenCentral()
 }
@@ -34,7 +34,6 @@ test {
 }
 
 dependencies {
-    implementation "org.joml:joml:${jomlVersion}"
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
 
     implementation "org.lwjgl:lwjgl"
@@ -50,6 +49,7 @@ dependencies {
     implementation "org.lwjgl:lwjgl-lmdb"
     implementation "org.lwjgl:lwjgl-lz4"
     implementation "org.lwjgl:lwjgl-meow"
+    implementation "org.lwjgl:lwjgl-meshoptimizer"
     implementation "org.lwjgl:lwjgl-nanovg"
     implementation "org.lwjgl:lwjgl-nfd"
     implementation "org.lwjgl:lwjgl-nuklear"
@@ -60,11 +60,11 @@ dependencies {
     implementation "org.lwjgl:lwjgl-opengles"
     implementation "org.lwjgl:lwjgl-openvr"
     implementation "org.lwjgl:lwjgl-opus"
-    implementation "org.lwjgl:lwjgl-ovr"
     implementation "org.lwjgl:lwjgl-par"
     implementation "org.lwjgl:lwjgl-remotery"
     implementation "org.lwjgl:lwjgl-rpmalloc"
     implementation "org.lwjgl:lwjgl-shaderc"
+    implementation "org.lwjgl:lwjgl-spvc"
     implementation "org.lwjgl:lwjgl-sse"
     implementation "org.lwjgl:lwjgl-stb"
     implementation "org.lwjgl:lwjgl-tinyexr"
@@ -85,6 +85,7 @@ dependencies {
     runtimeOnly "org.lwjgl:lwjgl-lmdb::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-lz4::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-meow::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-meshoptimizer::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-nanovg::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-nfd::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-nuklear::$lwjglNatives"
@@ -93,12 +94,12 @@ dependencies {
     runtimeOnly "org.lwjgl:lwjgl-opengles::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-openvr::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-opus::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-ovr::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-par::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-remotery::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-rpmalloc::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-shaderc::$lwjglNatives"
-    runtimeOnly "org.lwjgl:lwjgl-sse:3.2.3"
+    runtimeOnly "org.lwjgl:lwjgl-spvc::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-sse::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-stb::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-tinyexr::$lwjglNatives"
     runtimeOnly "org.lwjgl:lwjgl-tinyfd::$lwjglNatives"
