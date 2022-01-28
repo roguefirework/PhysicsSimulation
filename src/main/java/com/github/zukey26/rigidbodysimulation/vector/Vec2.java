@@ -1,5 +1,7 @@
 package com.github.zukey26.rigidbodysimulation.vector;
 
+import com.github.zukey26.rigidbodysimulation.util.Util;
+
 public class Vec2 {
     private double x;
     private double y;
@@ -19,7 +21,11 @@ public class Vec2 {
         this.y = copy.getY();
     }
 
-
+    public void set(double x, double y)
+    {
+        this.x = x;
+        this.y = y;
+    }
     public Vec2 add(Vec2 other)
     {
         return new Vec2(other.getX() + this.x,other.getY()+this.y);
@@ -37,9 +43,15 @@ public class Vec2 {
         return new Vec2(this.x * other, this.y * other);
     }
 
+    public Vec2 clamp(Vec2 lower, Vec2 upper)
+    {
+        return new Vec2(Util.clamp(lower.getX(),upper.getX(),this.x),Util.clamp(lower.getY(),upper.getY(),this.y));
+    }
+
+
     public double dot(Vec2 other)
     {
-        return this.x * other.getX() + this.y + other.getY();
+        return (this.x * other.getX()) + (this.y * other.getY());
     }
 
     public double length()
@@ -94,5 +106,13 @@ public class Vec2 {
 
     public void setY(double y) {
         this.y = y;
+    }
+
+    @Override
+    public String toString() {
+        return "Vec2{" +
+                "x=" + x +
+                ", y=" + y +
+                '}';
     }
 }

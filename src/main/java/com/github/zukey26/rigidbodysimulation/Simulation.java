@@ -1,14 +1,18 @@
 package com.github.zukey26.rigidbodysimulation;
 
 
-import com.github.zukey26.rigidbodysimulation.bodies.Shape.AABB;
+
 import com.github.zukey26.rigidbodysimulation.bodies.Shape.Circle;
+import com.github.zukey26.rigidbodysimulation.bodies.data.Material;
 import com.github.zukey26.rigidbodysimulation.bodies.body.Body;
+import com.github.zukey26.rigidbodysimulation.util.Pair;
 import com.github.zukey26.rigidbodysimulation.util.Util;
 import com.github.zukey26.rigidbodysimulation.vector.Vec2;
+import com.github.zukey26.rigidbodysimulation.collider.CircleCollider;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
-import java.util.Objects;
-
+import static org.lwjgl.opengl.GL11.*;
 /**
  * Main simulation class. Runs off of this.
  */
@@ -16,15 +20,22 @@ public final class Simulation {
     static final float fps = 60;
     static final float dt = 1 /fps;
     static float accumulator = 0;
-    static long frameStartTime;
+    long frameStartTime;
+    static Vec2 gravity = new Vec2(0,0);
+    static ArrayList<Manifold> collided = new ArrayList<>();
+    static ArrayList<Body> bodies = new ArrayList<>();
     public Simulation()
     {
         //Get time in milliseconds since jan 1 1970
         frameStartTime = System.currentTimeMillis();
-        while(running)
+        //bodies.add(new Body(new Circle(0.5f,new Vec2(0,0)), Material.ROCK,new Vec2(0,0),new Vec2(0,0)));
+        bodies.add(new Body(new Circle(1,new Vec2(1,10)), Material.ROCK,new Vec2(0,0),new Vec2(0,-1)));
+        bodies.add(new Body(new Circle(1,new Vec2(0,-5)), Material.ROCK,new Vec2(0,0),new Vec2(0,1)));
+        while(!Main.window.shouldClose())
         {
+
             long currentTime  = System.currentTimeMillis();
-            accumulator += (float)(currentTime /1000L)- (float)(frameStartTime /1000L);
+            accumulator += (currentTime - frameStartTime)/1000F;
             //Store this start time for the next frame
             frameStartTime = currentTime;
             //Avoid a spiral of death on slow machines by limiting the amount of physics steps can be called in a loop
@@ -43,10 +54,7 @@ public final class Simulation {
         }
     }
 
-    void doPhysicsStep(float dt)
-    {
 
-    }
 
     /**
      * Helper class with collision routines
@@ -56,10 +64,9 @@ public final class Simulation {
         public static Manifold CircleCorrectCircle(Body circle1, Body circle2)
         {
             //vector from 1 -> 2
-            Vec2 normal = circle2.shape.position.sub(circle2.shape.position);
+            Vec2 normal = circle2.shape.position.sub(circle1.shape.position);
             double penetration;
-            float r = ((Circle)circle1.shape.getCollider()).getRadius() + ((Circle)circle1.shape.getCollider()).getRadius();
-            r *= r;
+            float r = ((CircleCollider)circle1.shape.getCollider()).getRadius() + ((CircleCollider)circle1.shape.getCollider()).getRadius();
             float d = (float) normal.length();
 
 
@@ -80,137 +87,11 @@ public final class Simulation {
             else
             {
                 // Choose random (but consistent) values
-                penetration = ((Circle)circle1.shape.getCollider()).getRadius();
+                penetration = ((CircleCollider)circle1.shape.getCollider()).getRadius();
                 normal = new Vec2( 1, 0 );
             }
             return new Manifold(circle1,circle2,normal,penetration);
         }
-        public static Manifold AABBCorrectABBB(Body a, Body b)
-        {
-
-            // Vector from A to B
-            Vec2 normal = b.shape.position.sub(a.shape.position);
-            double penetration;
-            AABB abox = (AABB) a.shape.getCollider();
-            AABB bbox = (AABB) b.shape.getCollider();
-
-            // Calculate half extents along x axis for each object
-            double aExtent = (abox.getMax().getX() - abox.getMin().getX()) / 2;
-            double bExtent = (bbox.getMax().getX() - bbox.getMin().getX()) / 2;
-
-            // Calculate overlap on x axis
-            double xOverlap = aExtent + bExtent - Math.abs( normal.getX());
-            // Calculate half extents along x axis for each object
-            aExtent = (abox.getMax().getY() - abox.getMin().getY()) / 2;
-            bExtent = (bbox.getMax().getY() - bbox.getMin().getY()) / 2;
-            // Calculate overlap on y axis
-            double yOverlap = aExtent + bExtent - Math.abs(normal.getY());
-
-            // Find out which axis is axis of least penetration
-            if(xOverlap > yOverlap)
-            {
-                if(normal.getX() < 0) {
-                    normal = new Vec2(-1, 0);
-                }
-                else {
-                    normal = new Vec2(1, 0);
-                }
-                penetration = xOverlap;
-            }
-            else
-            {
-                if(normal.getY() < 0) {
-                    normal = new Vec2(0, -1);
-                }
-                else {
-                    normal = new Vec2(0, 1);
-                }
-                penetration = yOverlap;
-            }
-            return new Manifold(a,b,normal,penetration);
-        }
-
-        /**
-         * AABB Correcting a circle
-         * @param a colider extends AABB
-         * @param b colider extends Circle
-         * @return colision data
-         */
-
-
-        public Manifold AABBCorrectsCircle(Body a, Body b)
-        {
-            Vec2 n = b.shape.position.sub(a.shape.position);
-
-            // Closest point on A to center of B
-            Vec2 closest = n;
-
-            // Calculate half extents along each axis
-            double xExtent = (((AABB)a.shape.getCollider()).getMax().getX() - ((AABB)a.shape.getCollider()).getMin().getX()) / 2;
-            double yExtent = (((AABB)a.shape.getCollider()).getMax().getY() - ((AABB)a.shape.getCollider()).getMin().getY()) / 2;
-
-            // Clamp point to edges of the AABB
-            closest.setX(Util.clamp(-xExtent, xExtent, closest.getX()));
-            closest.setY(Util.clamp(-yExtent, yExtent, closest.getY()));
-
-            boolean inside = false;
-
-            // Circle is inside the AABB, so we need to clamp the circle's center
-            // to the closest edge
-            if(n == closest)
-            {
-                inside = true;
-
-                // Find closest axis
-                if(Math.abs( n.getY() ) > Math.abs( n.getY() ))
-                {
-                    // Clamp to closest extent
-                    if(closest.getX() > 0) {
-                        closest.setX(xExtent);
-                    }
-                    else {
-                        closest.setX(-xExtent);
-                    }
-                }
-                // y axis is shorter
-                else
-                {
-                    // Clamp to closest extent
-                    if(closest.getY() > 0) {
-                        closest.setY(yExtent);
-                    }
-                    else {
-                        closest.setY(-yExtent);
-                    }
-                }
-            }
-
-            Vec2 normal = n.sub(closest);
-            double penetration;
-            double d = normal.length();
-            double r = ((Circle)b.shape.getCollider()).getRadius();
-
-            // Early out of the radius is shorter than distance to closest point and
-            // Circle not inside the AABB
-            if(d > r * r && !inside) {
-                return null;
-            }
-            // Collision normal needs to be flipped to point outside if circle was
-            // inside the AABB
-            if(inside)
-            {
-                normal = normal.mul(-1);
-                penetration = r - d;
-            }
-            else
-            {
-                normal = n;
-                penetration = r - d;
-            }
-
-            return new Manifold(a,b,normal,penetration);
-        }
-
 
 
 
@@ -224,7 +105,7 @@ public final class Simulation {
         Body b;
         Vec2 normal;
         double penetrationDepth;
-        public void ResolveCollision()
+        public void resolveCollision()
         {
             // Calculate relative velocity
             Vec2 rv = b.velocity.sub(a.velocity);
@@ -250,11 +131,14 @@ public final class Simulation {
         }
         void PositionalCorrection()
         {
-            final float k_slop = 0.05f; // Penetration allowance
-            final float percent = 0.4f; // Penetration percentage to correct
+
+            final float k_slop = 0.1f; // Penetration allowance
+            final float percent = 0.5f; // Penetration percentage to correct
             Vec2 correction = normal.mul((Math.max(penetrationDepth - k_slop, 0.0f ) / (a.getMassData().invMass + b.getMassData().invMass))).mul(percent);
             a.shape.position = a.shape.position.sub(correction.mul(a.getMassData().invMass));
             b.shape.position = b.shape.position.add(correction.mul(b.getMassData().invMass));
+
+
         }
 
 
@@ -300,12 +184,108 @@ public final class Simulation {
     }
 
 
+    void doPhysicsStep(float dt) {
+        collided.clear();
+        LinkedList<Pair> done = new LinkedList<>();
+        for (int i = 0; i < bodies.size(); i++) {
+            Body a = bodies.get(i);
+            for (int j = 0; j < bodies.size(); j++) {
+                Body b = bodies.get(j);
+                if(i == j)
+                {
+                    continue;
+                }
+                if(done.size() == 0) {
+                    if (checkForCollision(a, b)) {
+                        collided.add(calculateColision(a, b));
+                        done.add(new Pair(i, j));
+                    }
+                }
+                else {
+                    for (int z = 0; z < done.size(); z++) {
+                        Pair pair = done.get(z);
+                        if (checkForCollision(a, b)) {
+                            if (pair.j == i && j == pair.i) {
+                                break;
+                            }
+                            collided.add(calculateColision(a, b));
+                            done.add(new Pair(i, j));
+                        }
+
+                    }
+                }
+
+            }
+        }
+        for (Body body : bodies) {
+            integrateForces(body, dt);
+        }
+        for (Manifold manifold : collided) {
+            manifold.resolveCollision();
+        }
+        // Integrate velocities
+        for (Body body : bodies) {
+            integrateVelocity(body, dt);
+        }
+        // Correct positions
+        for (Manifold manifold : collided) {
+            manifold.PositionalCorrection();
+        }
+        // Clear all forces
+        for (Body b : bodies) {
+            b.force.set(0, 0);
+        }
+    }
+
+    private Manifold calculateColision(Body a, Body b) {
+        if (a.shape.getCollider() instanceof CircleCollider) {
+            if (b.shape.getCollider() instanceof CircleCollider) {
+                return CollisionRoutines.CircleCorrectCircle(a, b);
+            }
+        }
+        return null;
+    }
+
+    private boolean checkForCollision(Body a, Body b) {
+
+        if(a.shape.getCollider() instanceof CircleCollider) {
+            if (b.shape.getCollider() instanceof CircleCollider) {
+                return ((CircleCollider) a.shape.getCollider()).collidesOther((CircleCollider) b.shape.getCollider());
+            }
+        }
+        return false;
+    }
+
+    void integrateForces( Body b, float dt )
+    {
+        if(b.getMassData().invMass == 0.0f)
+            return;
+        Vec2 force = b.force.mul(b.getMassData().invMass).add(gravity).mul((dt / 2.0f));
+        b.velocity = b.velocity.add(force);
+    }
+
+    void integrateVelocity( Body b, float dt )
+    {
+        if(b.getMassData().invMass == 0.0f)
+            return;
+
+        b.shape.position = b.shape.position.add(b.velocity.mul(dt));
+        integrateForces( b, dt );
+    }
+
+
     /**
      * Renders the screen of the game
-     * @param alpha number for interpolation of shapes
+     * @param alpha number for interpolation of shapes -does nothing at the moment
      */
     void renderGame(float alpha)
     {
+        glClear(GL_COLOR_BUFFER_BIT);
 
+        for (Body body: bodies) {
+            body.shape.Render();
+        }
+        Main.window.update();
+        Main.window.swapBuffers();
     }
 }

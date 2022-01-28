@@ -1,38 +1,29 @@
 package com.github.zukey26.rigidbodysimulation.bodies.Shape;
 
+import com.github.zukey26.rigidbodysimulation.collider.CircleCollider;
+import com.github.zukey26.rigidbodysimulation.util.Util;
 import com.github.zukey26.rigidbodysimulation.vector.Vec2;
 
-public class Circle extends Collider{
-    float radius;
-    Vec2 position;
+public class Circle extends Shape{
+    public float radius;
+    @Override
+    public Collider getCollider() {
+        return new CircleCollider(radius,position);
+    }
+
+    @Override
+    public float ComputeMass(float density) {
+        return (float) (Math.PI *(this.radius* this.radius) * density);
+    }
+
+    @Override
+    public void Render() {
+        Util.DrawCircle(position.getX(),position.getY(),radius,60);
+    }
 
     public Circle(float radius, Vec2 position) {
+        super(position);
         this.radius = radius;
-        this.position = position;
+
     }
-
-
-    public boolean collidesOther(Circle other)
-    {
-        float r = this.radius + other.getRadius();
-        r *= r;
-        return r < ((position.getX() + other.getPosition().getX()) + (position.getY() + other.getPosition().getY()));
-    }
-
-    public float getRadius() {
-        return radius;
-    }
-
-    public void setRadius(float radius) {
-        this.radius = radius;
-    }
-
-    public Vec2 getPosition() {
-        return position;
-    }
-
-    public void setPosition(Vec2 position) {
-        this.position = position;
-    }
-
 }

@@ -6,6 +6,10 @@ public class MassData {
 
     public MassData(float mass) {
         this.mass = mass;
-        this.invMass = mass == 0 ? 1 / mass : 0;
+        this.invMass = 0;
+        if(this.mass != 0)
+        {
+            this.invMass = 1/mass;
+        }
     }
 }

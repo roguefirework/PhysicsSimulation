@@ -15,4 +15,11 @@ public class Body {
     public Vec2 force;
     public Vec2 velocity;
 
+    public Body(Shape shape, Material material, Vec2 force, Vec2 velocity) {
+        this.shape = shape;
+        this.material = material;
+        this.force = force;
+        this.velocity = velocity;
+    }
+
 }
