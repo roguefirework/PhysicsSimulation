@@ -1,6 +1,8 @@
-package com.github.zukey26.rigidbodysimulation.vector;
+package com.github.zukey26.rigidbodysimulation.bodies.Shape;
 
-public class AABB {
+import com.github.zukey26.rigidbodysimulation.vector.Vec2;
+
+public class AABB extends Collider{
     Vec2 min;
     Vec2 max;
 

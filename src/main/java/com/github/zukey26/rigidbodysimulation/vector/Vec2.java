@@ -24,10 +24,24 @@ public class Vec2 {
     {
         return new Vec2(other.getX() + this.x,other.getY()+this.y);
     }
-    public static Vec2 add(Vec2 first, Vec2 other)
+    public Vec2 sub(Vec2 other)
     {
-        return first.add(other);
+        return new Vec2(this.x - other.getX(), this.y - other.getY());
     }
+    public Vec2 mul(Vec2 other)
+    {
+        return new Vec2(this.x * other.getX(), this.y * other.getY());
+    }
+    public Vec2 mul(double other)
+    {
+        return new Vec2(this.x * other, this.y * other);
+    }
+
+    public double dot(Vec2 other)
+    {
+        return this.x * other.getX() + this.y + other.getY();
+    }
+
     public double length()
     {
         return Math.sqrt(this.x * this.x + this.y * this.y);
@@ -44,8 +58,27 @@ public class Vec2 {
         return vec;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
+        Vec2 vec2 = (Vec2) o;
 
+        if (Double.compare(vec2.x, x) != 0) return false;
+        return Double.compare(vec2.y, y) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(x);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(y);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        return result;
+    }
 
     public double getX() {
         return x;

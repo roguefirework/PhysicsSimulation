@@ -1,6 +1,8 @@
-package com.github.zukey26.rigidbodysimulation.vector;
+package com.github.zukey26.rigidbodysimulation.bodies.Shape;
 
-public class Circle {
+import com.github.zukey26.rigidbodysimulation.vector.Vec2;
+
+public class Circle extends Collider{
     float radius;
     Vec2 position;
 
@@ -32,4 +34,5 @@ public class Circle {
     public void setPosition(Vec2 position) {
         this.position = position;
     }
+
 }
