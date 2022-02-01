@@ -5,35 +5,55 @@ package com.github.zukey26.rigidbodysimulation;
 import com.github.zukey26.rigidbodysimulation.bodies.Shape.Circle;
 import com.github.zukey26.rigidbodysimulation.bodies.data.Material;
 import com.github.zukey26.rigidbodysimulation.bodies.body.Body;
+import com.github.zukey26.rigidbodysimulation.commands.Command;
+import com.github.zukey26.rigidbodysimulation.commands.CommandWatcher;
 import com.github.zukey26.rigidbodysimulation.util.Pair;
 import com.github.zukey26.rigidbodysimulation.util.Util;
 import com.github.zukey26.rigidbodysimulation.vector.Vec2;
 import com.github.zukey26.rigidbodysimulation.collider.CircleCollider;
-import java.util.ArrayList;
-import java.util.LinkedList;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.lwjgl.opengl.GL11.*;
 /**
  * Main simulation class. Runs off of this.
  */
 public final class Simulation {
-    static final float fps = 60;
+    static final float fps = 120;
     static final float dt = 1 /fps;
     static float accumulator = 0;
     long frameStartTime;
     static Vec2 gravity = new Vec2(0,0);
     static ArrayList<Manifold> collided = new ArrayList<>();
-    static ArrayList<Body> bodies = new ArrayList<>();
+    public static ArrayList<Body> bodies = new ArrayList<>();
+    public static AtomicBoolean running = new AtomicBoolean();
+    public static CommandWatcher watcher = new CommandWatcher();
     public Simulation()
     {
+        running.set(true);
+        watcher.start();
         //Get time in milliseconds since jan 1 1970
         frameStartTime = System.currentTimeMillis();
-        //bodies.add(new Body(new Circle(0.5f,new Vec2(0,0)), Material.ROCK,new Vec2(0,0),new Vec2(0,0)));
-        bodies.add(new Body(new Circle(1,new Vec2(1,10)), Material.ROCK,new Vec2(0,0),new Vec2(0,-1)));
-        bodies.add(new Body(new Circle(1,new Vec2(0,-5)), Material.ROCK,new Vec2(0,0),new Vec2(0,1)));
+
+        for (int i = -5; i < 5; i++) {
+            for (int j = -5; j < 5; j++) {
+                bodies.add(new Body(new Circle(0.25f,new Vec2(i,j)),Material.BOUNCYBALL,new Vec2(0,0),new Vec2(0,0)));
+            }
+        }
+
+        bodies.add(new Body(new Circle(1f,new Vec2(7,0)),Material.ROCK,new Vec2(0,0),new Vec2(-5,0)));
         while(!Main.window.shouldClose())
         {
-
+            while(!watcher.commands.isEmpty())
+            {
+                String[] command = watcher.commands.poll();
+                for (Command c : Command.commands) {
+                    if (c.name.toLowerCase().equals(command[0].toLowerCase())) {
+                        c.execute(Arrays.copyOfRange(command, 1, command.length));
+                    }
+                }
+            }
             long currentTime  = System.currentTimeMillis();
             accumulator += (currentTime - frameStartTime)/1000F;
             //Store this start time for the next frame
@@ -52,6 +72,7 @@ public final class Simulation {
             renderGame(accumulator/dt);
 
         }
+        running.set(false);
     }
 
 
@@ -131,13 +152,13 @@ public final class Simulation {
         }
         void PositionalCorrection()
         {
-
+            /*
             final float k_slop = 0.1f; // Penetration allowance
             final float percent = 0.5f; // Penetration percentage to correct
             Vec2 correction = normal.mul((Math.max(penetrationDepth - k_slop, 0.0f ) / (a.getMassData().invMass + b.getMassData().invMass))).mul(percent);
             a.shape.position = a.shape.position.sub(correction.mul(a.getMassData().invMass));
             b.shape.position = b.shape.position.add(correction.mul(b.getMassData().invMass));
-
+            */
 
         }
 
@@ -181,12 +202,38 @@ public final class Simulation {
             this.normal = normal;
             this.penetrationDepth = penetrationDepth;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Manifold manifold = (Manifold) o;
+
+            if (Double.compare(manifold.penetrationDepth, penetrationDepth) != 0) return false;
+            if (a != null ? !a.equals(manifold.a) : manifold.a != null) return false;
+            if (b != null ? !b.equals(manifold.b) : manifold.b != null) return false;
+            return normal != null ? normal.equals(manifold.normal) : manifold.normal == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result;
+            long temp;
+            result = a != null ? a.hashCode() : 0;
+            result = 31 * result + (b != null ? b.hashCode() : 0);
+            result = 31 * result + (normal != null ? normal.hashCode() : 0);
+            temp = Double.doubleToLongBits(penetrationDepth);
+            result = 31 * result + (int) (temp ^ (temp >>> 32));
+            return result;
+        }
     }
 
 
     void doPhysicsStep(float dt) {
         collided.clear();
         LinkedList<Pair> done = new LinkedList<>();
+
         for (int i = 0; i < bodies.size(); i++) {
             Body a = bodies.get(i);
             for (int j = 0; j < bodies.size(); j++) {
@@ -195,28 +242,14 @@ public final class Simulation {
                 {
                     continue;
                 }
-                if(done.size() == 0) {
-                    if (checkForCollision(a, b)) {
-                        collided.add(calculateColision(a, b));
-                        done.add(new Pair(i, j));
-                    }
+                if (checkForCollision(a, b)) {
+                    collided.add(calculateColision(a, b));
+                    done.add(new Pair(i, j));
                 }
-                else {
-                    for (int z = 0; z < done.size(); z++) {
-                        Pair pair = done.get(z);
-                        if (checkForCollision(a, b)) {
-                            if (pair.j == i && j == pair.i) {
-                                break;
-                            }
-                            collided.add(calculateColision(a, b));
-                            done.add(new Pair(i, j));
-                        }
-
-                    }
-                }
-
             }
         }
+        collided = new ArrayList<>(new HashSet<>(collided));
+
         for (Body body : bodies) {
             integrateForces(body, dt);
         }
