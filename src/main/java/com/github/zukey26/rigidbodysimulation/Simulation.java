@@ -293,7 +293,7 @@ public final class Simulation {
     {
         if(b.getMassData().invMass == 0.0f)
             return;
-        Vec2 force = b.force.mul(b.getMassData().invMass).add(gravity).mul((dt / 2.0f));
+        Vec2 force = b.force.mul(b.getMassData().invMass).add(gravity).mul((dt));
         b.velocity = b.velocity.add(force);
     }
 
